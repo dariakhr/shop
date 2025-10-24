@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/header.php';
 
-// Wenn Warenkorb leer -> zurück
+// Wenn leer -> zurück
 if (cart_count() === 0) {
   echo '<div class="alert alert-warning">Warenkorb ist leer.</div><a class="btn btn-primary" href="index2.php">Produkte ansehen</a>';
   require_once __DIR__ . '/footer.php'; exit;
 }
 
-// Bestellung absenden
+// Bestellung verarbeiten
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   $vn = trim($_POST['vorname'] ?? '');
   $nn = trim($_POST['nachname'] ?? '');
@@ -16,31 +16,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
   if ($vn === '' || $nn === '' || $em === '') {
     echo '<div class="alert alert-danger">Bitte alle Felder ausfüllen.</div>';
   } else {
-    // Bestellung anlegen
+  
     $db->execute(
       "INSERT INTO bestellungen (KundeVorname, KundeNachname, KundeEmail) VALUES (?, ?, ?)",
       [$vn, $nn, $em]
     );
     $orderId = (int)$db->lastId();
 
-    // Warenkorb-Artikel laden
-    $itemsCount = 0;
-    $total = 0.0;
-
+    // Positionen aus Session in DB schreiben
+    $itemsCount = 0; $total = 0.0;
     if (!empty($_SESSION['cart'])) {
       $ids = array_keys($_SESSION['cart']);
-      $placeholders = implode(',', array_fill(0, count($ids), '?'));
-      $rows = $db->select(
-        "SELECT ProduktID, ProduktName, ProduktPreis FROM produkte WHERE ProduktID IN ($placeholders)",
-        $ids
-      );
-      $map = [];
-      foreach ($rows as $r) { $map[$r['ProduktID']] = $r; }
+      $ph  = implode(',', array_fill(0, count($ids), '?'));
+      $rows = $db->select("SELECT ProduktID, ProduktName, ProduktPreis FROM produkte WHERE ProduktID IN ($ph)", $ids);
+      $map=[]; foreach ($rows as $r) { $map[$r['ProduktID']] = $r; }
 
       foreach ($_SESSION['cart'] as $pid => $qty) {
         $pid = (int)$pid; $qty = (int)$qty;
         if ($qty <= 0 || !isset($map[$pid])) continue;
-
         $pname = $map[$pid]['ProduktName'];
         $pprice= (float)$map[$pid]['ProduktPreis'];
 
@@ -49,16 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
            VALUES (?, ?, ?, ?, ?)",
           [$orderId, $pid, $pname, $pprice, $qty]
         );
-
         $itemsCount += $qty;
         $total += $pprice * $qty;
       }
     }
 
-    // Warenkorb leeren
+    // Warenkorb leeren + weiter
     cart_clear();
-
-    // Weiter zur Erfolgsseite (S3)
     header('Location: checkout_success.php?order=' . $orderId);
     exit;
   }
@@ -95,8 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $sum = 0.0; $cnt = 0;
         if (!empty($_SESSION['cart'])) {
           $ids = array_keys($_SESSION['cart']);
-          $placeholders = implode(',', array_fill(0, count($ids), '?'));
-          $rows = $db->select("SELECT ProduktID, ProduktName, ProduktPreis FROM produkte WHERE ProduktID IN ($placeholders)", $ids);
+          $ph  = implode(',', array_fill(0, count($ids), '?'));
+          $rows = $db->select("SELECT ProduktID, ProduktName, ProduktPreis FROM produkte WHERE ProduktID IN ($ph)", $ids);
           $map=[]; foreach ($rows as $r) { $map[$r['ProduktID']] = $r; }
           echo '<ul class="list-group list-group-flush">';
           foreach ($_SESSION['cart'] as $pid=>$qty) {
@@ -111,12 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         }
         ?>
         <div class="d-flex justify-content-between mt-3">
-          <span class="fw-semibold">Artikel:</span>
-          <span class="fw-semibold"><?= (int)$cnt ?></span>
+          <span class="fw-semibold">Artikel:</span><span class="fw-semibold"><?= (int)$cnt ?></span>
         </div>
         <div class="d-flex justify-content-between">
-          <span class="fw-semibold">Gesamt:</span>
-          <span class="fw-semibold"><?= euro($sum) ?></span>
+          <span class="fw-semibold">Gesamt:</span><span class="fw-semibold"><?= euro($sum) ?></span>
         </div>
       </div>
     </div>
@@ -124,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 </div>
 
 <script>
-// Bootstrap validation
+// Bootstrap-Formvalidierung
 (() => {
   'use strict';
   const forms = document.querySelectorAll('.needs-validation');

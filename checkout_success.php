@@ -30,7 +30,8 @@ foreach ($pos as $p) {
   <div class="d-inline-block text-start mt-3">
     <div><strong>Artikel:</strong> <?= (int)$items ?></div>
     <div><strong>Gesamt:</strong> <?= euro($total) ?></div>
-    <div><strong>Kunde:</strong> <?= htmlspecialchars($order['KundeVorname'] . ' ' . $order['KundeNachname']) ?> (<?= htmlspecialchars($order['KundeEmail']) ?>)</div>
+    <div><strong>Kunde:</strong> <?= htmlspecialchars($order['KundeVorname'] . ' ' . $order['KundeNachname']) ?>
+      (<?= htmlspecialchars($order['KundeEmail']) ?>)</div>
   </div>
 
   <div class="mt-4">

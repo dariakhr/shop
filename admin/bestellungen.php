@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/auth.php'; 
+require_once __DIR__ . '/../header.php'; 
 
 // Bestellungen laden
 $orders = $db->select("SELECT * FROM bestellungen ORDER BY BestellungID DESC");
@@ -63,4 +64,4 @@ if ($orders) {
   </div>
 <?php endif; ?>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
+<?php require_once __DIR__ . '/../footer.php'; ?>

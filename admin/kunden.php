@@ -1,5 +1,6 @@
 <?php
-require_once __DIR__ . '/header.php'; 
+require_once __DIR__ . '/auth.php'; 
+require_once __DIR__ . '/../header.php'; 
 
 // CREATE
 if (isset($_GET["aktion"]) && $_GET["aktion"] === "1") {
@@ -93,8 +94,8 @@ $kunden = $db->select("SELECT * FROM kunden ORDER BY KundenID DESC");
           <td id="tel-<?= $pos ?>"><?= htmlspecialchars($k['Telefon']) ?></td>
           <td id="comment-<?= $pos ?>" style="white-space:pre-wrap;"><?= htmlspecialchars($k['Kommentar']) ?></td>
           <td id="ed-<?= $pos ?>">
-            <button type="button" class="btn btn-sm btn-primary" onclick="FelderEditieren(<?= $pos ?>)">Bearbeiten</button>
-            <button type="button" class="btn btn-sm btn-danger" onclick="ZeileEntfernen(<?= $pos ?>)">Löschen</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="KundEdit(<?= $pos ?>)">Bearbeiten</button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="KundRemove(<?= $pos ?>)">Löschen</button>
           </td>
         </tr>
       <?php $pos++; endforeach; ?>
@@ -103,5 +104,6 @@ $kunden = $db->select("SELECT * FROM kunden ORDER BY KundenID DESC");
   </div>
 </form>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
 <script src="kunden.js"></script>
+<?php require_once __DIR__ . '/../footer.php'; ?>
+

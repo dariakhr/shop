@@ -1,5 +1,7 @@
 <?php
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/auth.php'; 
+require_once __DIR__ . '/../header.php'; 
+
 
 $oid = (int)($_GET['id'] ?? 0);
 if ($oid <= 0) {
@@ -58,4 +60,4 @@ foreach ($pos as $p) { $total += (float)$p['ProduktPreis'] * (int)$p['Menge']; $
 
 <a href="bestellungen.php" class="btn btn-secondary mt-3">Zurück</a>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
+<?php require_once __DIR__ . '/../footer.php'; ?>

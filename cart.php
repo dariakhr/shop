@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/header.php';
 
-// Update quantities / remove / clear
+// Aktionen: Mengen ändern / entfernen / leeren
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (isset($_POST['update']) && !empty($_POST['qty']) && is_array($_POST['qty'])) {
     foreach ($_POST['qty'] as $pid => $qty) { cart_set($pid, $qty); }
@@ -13,16 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   header('Location: cart.php'); exit;
 }
 
-// Build items from DB
-$items = [];
-$total = 0.0;
-
+// Warenkorbinhalte aus DB lesen
+$items = []; $total = 0.0;
 if (!empty($_SESSION['cart'])) {
   $ids = array_keys($_SESSION['cart']);
   $placeholders = implode(',', array_fill(0, count($ids), '?'));
   $rows = $db->select("SELECT ProduktID, ProduktName, ProduktPreis, ProduktBild FROM produkte WHERE ProduktID IN ($placeholders)", $ids);
-  $map = [];
-  foreach ($rows as $r) { $map[$r['ProduktID']] = $r; }
+  $map = []; foreach ($rows as $r) { $map[$r['ProduktID']] = $r; }
 
   foreach ($_SESSION['cart'] as $pid => $qty) {
     $pid = (int)$pid; $qty = (int)$qty;
@@ -66,10 +63,7 @@ if (!empty($_SESSION['cart'])) {
             <td><img src="<?= htmlspecialchars($it['img']) ?>" alt="" class="img-fluid" style="max-height:60px"></td>
             <td><?= htmlspecialchars($it['name']) ?></td>
             <td><?= euro($it['price']) ?></td>
-            <td>
-              <input type="number" class="form-control" name="qty[<?= (int)$it['id'] ?>]"
-                     value="<?= (int)$it['qty'] ?>" min="0">
-            </td>
+            <td><input type="number" class="form-control" name="qty[<?= (int)$it['id'] ?>]" value="<?= (int)$it['qty'] ?>" min="0"></td>
             <td><?= euro($it['sum']) ?></td>
             <td>
               <button class="btn btn-outline-danger btn-sm" name="remove" value="1"

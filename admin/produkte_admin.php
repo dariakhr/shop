@@ -1,64 +1,51 @@
 <?php
-require_once __DIR__ . '/header.php';
+require_once __DIR__ . '/auth.php';        
+require_once __DIR__ . '/../header.php';   
 
-
-$uploadDir = __DIR__ . '/images/';
+$uploadDir = __DIR__ . '/../images/';
 $uploadRel = 'images/';
-
 $allowedExt = ['jpg','jpeg','png','webp'];
 
-// Хелпер загрузки (возвращает относительный путь или null)
+// Bild-Upload verarbeiten (gibt relativen Pfad zurück oder null)
 function handle_upload($fieldName, $uploadDir, $uploadRel, $allowedExt) {
-    if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
-        return null;
-    }
+    if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) return null;
     $tmp  = $_FILES[$fieldName]['tmp_name'];
     $name = $_FILES[$fieldName]['name'];
-    $size = $_FILES[$fieldName]['size'];
+    $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) return null;
 
-    // Проверка расширения
-    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowedExt, true)) {
-        return null; // можно вывести alert об ошибке
-    }
-
+    // Dateiname säubern + eindeutige ID anhängen
     $safeBase = preg_replace('/[^a-zA-Z0-9_\-]/', '_', pathinfo($name, PATHINFO_FILENAME));
     $newName  = $safeBase . '_' . uniqid() . '.' . $ext;
 
-    // Переносим
     if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
-    if (move_uploaded_file($tmp, $uploadDir . $newName)) {
-        return $uploadRel . $newName;
-    }
+    if (move_uploaded_file($tmp, $uploadDir . $newName)) return $uploadRel . $newName;
     return null;
 }
 
-/* -------------------- CREATE -------------------- */
+/*  CREATE  */
 if (isset($_GET["aktion"]) && $_GET["aktion"] === "1") {
     $name   = trim($_POST["name"] ?? "");
     $price  = $_POST["price"] ?? null;
     $amount = $_POST["amount"] ?? null;
     $comment= trim($_POST["comment"] ?? "");
 
-    // загрузка файла (необязательна)
-    $relPath = handle_upload('bild', $uploadDir, $uploadRel, $allowedExt);
+    $relPath = handle_upload('bild', $uploadDir, $uploadRel, $allowedExt); // optional
 
     $db->execute(
         "INSERT INTO produkte (ProduktName, ProduktBild, ProduktPreis, ProduktMenge, ProduktKommentar)
          VALUES (?, ?, ?, ?, ?)",
         [$name, $relPath, $price, $amount, $comment]
     );
-
-    header('Location: produkte_admin.php');
-    exit;
+    header('Location: produkte_admin.php'); exit;
 }
 
-/* -------------------- UPDATE / DELETE -------------------- */
+/* UPDATE / DELETE */
 if (isset($_GET["aktion"]) && $_GET["aktion"] === "2") {
     $rowId = (int)($_POST["zeileID"] ?? 0);
 
     if (!empty($_POST["entfernen"]) && $_POST["entfernen"] === "ja") {
-        // Удаляем только запись. Файл НЕ удаляем (IMG-KEEP).
+        // IMG-KEEP: Nur DB-Eintrag entfernen, Datei nicht löschen
         $db->execute("DELETE FROM produkte WHERE ProduktID = ?", [$rowId]);
         header('Location: produkte_admin.php'); exit;
     } else {
@@ -66,35 +53,33 @@ if (isset($_GET["aktion"]) && $_GET["aktion"] === "2") {
         $price   = $_POST["price"] ?? null;
         $amount  = $_POST["amount"] ?? null;
         $comment = trim($_POST["comment"] ?? "");
-        $oldImg  = trim($_POST["old_image"] ?? ""); // старый путь
+        $oldImg  = trim($_POST["old_image"] ?? "");
 
-        // Если загружен новый файл — используем его; иначе оставляем старый
-        $newImg = handle_upload('bild', $uploadDir, $uploadRel, $allowedExt);
-        $finalImg = $newImg ?: $oldImg;
+        $newImg  = handle_upload('bild', $uploadDir, $uploadRel, $allowedExt);
+        $finalImg= $newImg ?: $oldImg;
 
         $db->execute(
-            "UPDATE produkte SET ProduktName=?, ProduktBild=?, ProduktPreis=?, ProduktMenge=?, ProduktKommentar=?
-             WHERE ProduktID=?",
-            [$name, $finalImg, $price, $amount, $comment, $rowId]
+          "UPDATE produkte SET ProduktName=?, ProduktBild=?, ProduktPreis=?, ProduktMenge=?, ProduktKommentar=? WHERE ProduktID=?",
+          [$name, $finalImg, $price, $amount, $comment, $rowId]
         );
         header('Location: produkte_admin.php'); exit;
     }
 }
 
-/* -------------------- READ -------------------- */
+/* READ */
 $produkte = $db->select("SELECT * FROM produkte ORDER BY ProduktID DESC");
 ?>
 <h1 class="mb-4">Produkte bearbeiten</h1>
 
-<!-- Кнопка показать/скрыть форму добавления -->
 <div class="mb-3">
+  <!-- Neue Produkt-Form anzeigen/ausblenden -->
   <button class="btn btn-success" onclick="document.getElementById('addBox').classList.toggle('d-none');">
     + Neues Produkt
   </button>
-  <a class="btn btn-link" href="index2.php">Zurück zur Produktliste</a>
+  <a class="btn btn-link" href="../index2.php">Zurück zum Shop</a>
 </div>
 
-<!-- Форма добавления товара -->
+<!-- CREATE-Form -->
 <div id="addBox" class="card p-3 mb-4 d-none">
   <form action="produkte_admin.php?aktion=1" method="post" enctype="multipart/form-data" autocomplete="off">
     <div class="row g-2">
@@ -123,7 +108,7 @@ $produkte = $db->select("SELECT * FROM produkte ORDER BY ProduktID DESC");
   </form>
 </div>
 
-<!-- UPDATE / DELETE FORM (оборачивает таблицу) -->
+<!-- UPDATE/DELETE-Form um die Tabelle herum -->
 <form id="editForm" action="produkte_admin.php?aktion=2" method="post" enctype="multipart/form-data">
   <input type="hidden" name="zeileID" value="">
   <input type="hidden" name="entfernen" value="">
@@ -146,18 +131,14 @@ $produkte = $db->select("SELECT * FROM produkte ORDER BY ProduktID DESC");
       <?php $pos = 1; foreach ($produkte as $p): ?>
         <tr>
           <td id="id-<?= $pos ?>"><?= (int)$p['ProduktID'] ?></td>
-
-          <!-- миниатюра 60x60 -->
           <td id="imgcell-<?= $pos ?>">
             <?php $img = $p['ProduktBild'] ?: 'https://via.placeholder.com/60?text=Bild'; ?>
             <img src="<?= htmlspecialchars($img) ?>" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">
           </td>
-
           <td id="name-<?= $pos ?>"><?= htmlspecialchars($p['ProduktName'] ?? '') ?></td>
           <td id="price-<?= $pos ?>"><?= htmlspecialchars($p['ProduktPreis'] ?? '') ?></td>
           <td id="amount-<?= $pos ?>"><?= htmlspecialchars($p['ProduktMenge'] ?? '') ?></td>
           <td id="comment-<?= $pos ?>" style="white-space:pre-wrap;"><?= htmlspecialchars($p['ProduktKommentar'] ?? '') ?></td>
-
           <td id="ed-<?= $pos ?>">
             <button type="button" class="btn btn-sm btn-primary" onclick="ProdEdit(<?= $pos ?>)">Bearbeiten</button>
             <button type="button" class="btn btn-sm btn-danger" onclick="ProdRemove(<?= $pos ?>)">Löschen</button>
@@ -169,5 +150,5 @@ $produkte = $db->select("SELECT * FROM produkte ORDER BY ProduktID DESC");
   </div>
 </form>
 
-<?php require_once __DIR__ . '/footer.php'; ?>
+<?php require_once __DIR__ . '/../footer.php'; ?>
 <script src="produkte_admin.js"></script>

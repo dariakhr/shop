@@ -1,14 +1,15 @@
 <?php
+
 require_once __DIR__ . '/header.php';
 
-// Add-to-cart (POST)
+// POST: Produkt zum Warenkorb
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'], $_POST['pid'])) {
   cart_add((int)$_POST['pid'], max(1, (int)($_POST['qty'] ?? 1)));
-  header('Location: cart.php');
+  header('Location: cart.php'); // nach Warenkorb weiterleiten
   exit;
 }
 
-// Produkte laden (optional Suche)
+// Optional: Suche
 $q = trim($_GET['q'] ?? '');
 $params = [];
 $sql = "SELECT ProduktID, ProduktName, ProduktBild, ProduktPreis, ProduktMenge FROM produkte";
@@ -32,13 +33,11 @@ $produkte = $db->select($sql, $params);
     <?php foreach ($produkte as $p): ?>
       <div class="col-12 col-sm-6 col-md-4 col-lg-3">
         <div class="card product-card h-100">
-          <?php
-            $img = $p['ProduktBild'] ?: 'https://via.placeholder.com/600x400?text=Kein+Bild';
-          ?>
+          <?php $img = $p['ProduktBild'] ?: 'https://via.placeholder.com/600x400?text=Kein+Bild'; ?>
           <img src="<?= htmlspecialchars($img) ?>" class="card-img-top" alt="<?= htmlspecialchars($p['ProduktName']) ?>">
           <div class="card-body d-flex flex-column">
             <h5 class="card-title"><?= htmlspecialchars($p['ProduktName']) ?></h5>
-            <div class="mb-2 price"><?= euro($p['ProduktPreis']) ?></div>
+            <div class="mb-2 fw-semibold"><?= euro($p['ProduktPreis']) ?></div>
             <div class="mt-auto">
               <form method="post" class="d-flex gap-2">
                 <input type="hidden" name="pid" value="<?= (int)$p['ProduktID'] ?>">
