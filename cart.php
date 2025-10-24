@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/header.php';
+if (!empty($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+    header("Location: admin/produkte_admin.php");
+    exit;
+}
+
 
 // Aktionen: Mengen ändern / entfernen / leeren
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
