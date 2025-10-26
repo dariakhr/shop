@@ -3,7 +3,15 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/../header.php'; 
 
 // Bestellungen laden
-$orders = $db->select("SELECT * FROM bestellungen ORDER BY BestellungID DESC");
+$orders = $db->select("
+    SELECT 
+        b.*,
+        u.Vorname,
+        u.Nachname
+    FROM bestellungen b
+    LEFT JOIN users u ON u.Email = b.KundeEmail
+    ORDER BY b.BestellungID DESC
+");
 
 // Summen für jede Bestellung holen
 $totals = [];
@@ -43,23 +51,53 @@ if ($orders) {
           <th style="width:140px;"></th>
         </tr>
       </thead>
-      <tbody>
-        <?php foreach ($orders as $o): 
-          $oid = (int)$o['BestellungID'];
-          $sum = $totals[$oid]['summe'] ?? 0.0;
-          $cnt = $totals[$oid]['anzahl'] ?? 0;
-        ?>
-        <tr>
-          <td>#<?= $oid ?></td>
-          <td><?= htmlspecialchars($o['KundeVorname'] . ' ' . $o['KundeNachname']) ?></td>
-          <td><?= htmlspecialchars($o['KundeEmail']) ?></td>
-          <td><?= htmlspecialchars($o['Bestelldatum']) ?></td>
-          <td><?= (int)$cnt ?></td>
-          <td><?= euro($sum) ?></td>
-          <td><a class="btn btn-sm btn-primary" href="bestellung_details.php?id=<?= $oid ?>">Details anzeigen</a></td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
+ <tbody>
+  <?php foreach ($orders as $o): 
+    $oid = (int)$o['BestellungID'];
+    $sum = $totals[$oid]['summe'] ?? 0.0;
+    $cnt = $totals[$oid]['anzahl'] ?? 0;
+    $isUser = ($o['Vorname'] !== null); // wenn JOIN etwas gefunden hat, ist es ein registrierter User
+  ?>
+  <tr>
+    <td>#<?= $oid ?></td>
+
+    <!-- KUNDE / GAST -->
+    <td>
+      <?php if ($isUser): ?>
+        <?= "User: " . htmlspecialchars($o['Vorname'] . " " . $o['Nachname']) ?>
+      <?php else: ?>
+        <span class="text-muted">Gast</span>
+      <?php endif; ?>
+    </td>
+
+    <!-- EMAIL -->
+    <td>
+      <?php if ($isUser): ?>
+        <?= htmlspecialchars($o['KundeEmail']) ?>
+      <?php else: ?>
+        <em class="text-muted">Gast</em>
+      <?php endif; ?>
+    </td>
+
+    <!-- DATUM -->
+    <td><?= htmlspecialchars($o['Bestelldatum']) ?></td>
+
+    <!-- ARTIKEL ANZAHL -->
+    <td><?= (int)$cnt ?></td>
+
+    <!-- GESAMTSUMME -->
+    <td><?= euro($sum) ?></td>
+
+    <!-- DETAILS -->
+    <td>
+      <a class="btn btn-sm btn-primary" href="bestellung_details.php?id=<?= $oid ?>">
+        Details anzeigen
+      </a>
+    </td>
+  </tr>
+  <?php endforeach; ?>
+</tbody>
+
     </table>
   </div>
 <?php endif; ?>

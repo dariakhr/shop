@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/header.php';
 if (!empty($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
+  
     header("Location: admin/produkte_admin.php");
     exit;
 }
